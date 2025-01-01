@@ -1,4 +1,4 @@
-use libc::{c_char, c_int, c_long, c_ulong, c_void, c_double, size_t};
+use std::os::raw::{c_int, c_ulong, c_char, c_void, c_long, c_double};
 use super::rand::gmp_randstate_t;
 use super::sign::Sign;
 use std::convert::From;
@@ -54,7 +54,7 @@ extern "C" {
     fn __gmpz_get_si(op: mpz_srcptr) -> c_ulong;
     fn __gmpz_get_d(op: mpz_srcptr) -> c_double;
     fn __gmpz_fits_slong_p(op: mpz_srcptr) -> c_long;
-    fn __gmpz_sizeinbase(op: mpz_srcptr, base: c_int) -> size_t;
+    fn __gmpz_sizeinbase(op: mpz_srcptr, base: c_int) -> usize;
     fn __gmpz_cmp(op1: mpz_srcptr, op2: mpz_srcptr) -> c_int;
     fn __gmpz_cmp_ui(op1: mpz_srcptr, op2: c_ulong) -> c_int;
     fn __gmpz_add(rop: mpz_ptr, op1: mpz_srcptr, op2: mpz_srcptr);
@@ -96,10 +96,10 @@ extern "C" {
     fn __gmpz_gcdext(g: mpz_ptr, s: mpz_ptr, t: mpz_ptr, a: mpz_srcptr, b: mpz_srcptr);
     fn __gmpz_lcm(rop: mpz_ptr, op1: mpz_srcptr, op2: mpz_srcptr);
     fn __gmpz_invert(rop: mpz_ptr, op1: mpz_srcptr, op2: mpz_srcptr) -> c_int;
-    fn __gmpz_import(rop: mpz_ptr, count: size_t, order: c_int, size: size_t,
-                     endian: c_int, nails: size_t, op: *const c_void);
-    fn __gmpz_export(rop: *mut c_void, countp: *mut size_t, order: c_int, size: size_t, 
-                     endian: c_int, nails: size_t, op: mpz_srcptr);
+    fn __gmpz_import(rop: mpz_ptr, count: usize, order: c_int, size: usize,
+                     endian: c_int, nails: usize, op: *const c_void);
+    fn __gmpz_export(rop: *mut c_void, countp: *mut usize, order: c_int, size: usize, 
+                     endian: c_int, nails: usize, op: mpz_srcptr);
     fn __gmpz_root(rop: mpz_ptr, op: mpz_srcptr, n: c_ulong) -> c_int;
     fn __gmpz_sqrt(rop: mpz_ptr, op: mpz_srcptr);
     fn __gmpz_millerrabin(n: mpz_srcptr, reps: c_int) -> c_int;
@@ -852,7 +852,7 @@ impl<'b> From<&'b Mpz> for Vec<u8> {
             let bit_size = size_of::<u8>() * 8;
             let size = (__gmpz_sizeinbase(&other.mpz, 2) + bit_size - 1) / bit_size;
             let mut result: Vec<u8> = vec!(0; size);
-            __gmpz_export(result.as_mut_ptr() as *mut c_void, 0 as *mut size_t, 1, size_of::<u8>() as size_t, 0, 0, &other.mpz);
+            __gmpz_export(result.as_mut_ptr() as *mut c_void, 0 as *mut usize, 1, size_of::<u8>() as usize, 0, 0, &other.mpz);
             result
         }
     }
@@ -872,7 +872,7 @@ impl<'b> From<&'b Mpz> for Option<i64> {
 
             if __gmpz_sizeinbase(&to_export.mpz, 2) <= 63 {
                 let mut result : i64 = 0;
-                __gmpz_export(&mut result as *mut i64 as *mut c_void, 0 as *mut size_t, -1, size_of::<i64>() as size_t, 0, 0, &to_export.mpz);
+                __gmpz_export(&mut result as *mut i64 as *mut c_void, 0 as *mut usize, -1, size_of::<i64>() as usize, 0, 0, &to_export.mpz);
                 if negative {
                     Some(result ^ -1i64)
                 } else {
@@ -890,7 +890,7 @@ impl<'b> From<&'b Mpz> for Option<u64> {
         unsafe {
             if __gmpz_sizeinbase(&other.mpz, 2) <= 64 && other.mpz._mp_size >= 0 {
                 let mut result : u64 = 0;
-                __gmpz_export(&mut result as *mut u64 as *mut c_void, 0 as *mut size_t, -1, size_of::<u64>() as size_t, 0, 0, &other.mpz);
+                __gmpz_export(&mut result as *mut u64 as *mut c_void, 0 as *mut usize, -1, size_of::<u64>() as usize, 0, 0, &other.mpz);
                 Some(result)
             } else {
                 None
@@ -911,7 +911,7 @@ impl<'a> From<&'a [u8]> for Mpz {
     fn from(other: &'a [u8]) -> Mpz {
         unsafe {
             let mut res = Mpz::new();
-            __gmpz_import(&mut res.mpz, other.len(), 1, size_of::<u8>() as size_t,
+            __gmpz_import(&mut res.mpz, other.len(), 1, size_of::<u8>() as usize,
                           0, 0, other.as_ptr() as *const c_void);
             res
         }
@@ -922,7 +922,7 @@ impl From<u64> for Mpz {
     fn from(other: u64) -> Mpz {
         unsafe {
             let mut res = Mpz::new();
-            __gmpz_import(&mut res.mpz, 1, -1, size_of::<u64>() as size_t, 0, 0,
+            __gmpz_import(&mut res.mpz, 1, -1, size_of::<u64>() as usize, 0, 0,
                           &other as *const u64 as *const c_void);
             res
         }
@@ -933,7 +933,7 @@ impl From<u32> for Mpz {
     fn from(other: u32) -> Mpz {
         unsafe {
             let mut res = Mpz::new();
-            __gmpz_import(&mut res.mpz, 1, -1, size_of::<u32>() as size_t, 0, 0,
+            __gmpz_import(&mut res.mpz, 1, -1, size_of::<u32>() as usize, 0, 0,
                           &other as *const u32 as *const c_void);
             res
         }
@@ -946,11 +946,11 @@ impl From<i64> for Mpz {
             let mut res = Mpz::new();
 
             if other.is_negative() {
-                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i64>() as size_t, 0, 0,
+                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i64>() as usize, 0, 0,
                               &(other ^ -1i64) as *const i64 as *const c_void);
                 __gmpz_com(&mut res.mpz, &res.mpz);
             } else {
-                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i64>() as size_t, 0, 0,
+                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i64>() as usize, 0, 0,
                               &other as *const i64 as *const c_void);
             }
             res
@@ -964,11 +964,11 @@ impl From<i32> for Mpz {
             let mut res = Mpz::new();
 
             if other.is_negative() {
-                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i32>() as size_t, 0, 0,
+                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i32>() as usize, 0, 0,
                               &(other ^ -1i32) as *const i32 as *const c_void);
                 __gmpz_com(&mut res.mpz, &res.mpz);
             } else {
-                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i32>() as size_t, 0, 0,
+                __gmpz_import(&mut res.mpz, 1, -1, size_of::<i32>() as usize, 0, 0,
                               &other as *const i32 as *const c_void);
             }
             res

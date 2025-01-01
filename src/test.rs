@@ -1,6 +1,6 @@
 use super::mpz::mp_limb_t;
 use std;
-use libc::c_int;
+use std::os::raw::c_int;
 
 #[link(name = "gmp")]
 extern "C" {

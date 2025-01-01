@@ -1,4 +1,4 @@
-use libc::{c_double, c_int, c_long, c_ulong, c_void,c_char, free};
+use std::os::raw::{c_int, c_long, c_ulong, c_double, c_char, c_void};
 use std;
 use std::mem::uninitialized;
 use std::cmp;
@@ -128,7 +128,7 @@ impl Mpf {
         let r = out.to_str().unwrap().to_string();
 	// Free the pointer returned to us, as r already took a copy of the data inside of it
 	// Stops memory leaking
-	unsafe { free(out.into_raw() as _) };
+	unsafe { CString::from_raw(out.into_raw()); };
 	r
     }
 

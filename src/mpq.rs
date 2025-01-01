@@ -2,7 +2,7 @@ use super::mpz::{mpz_struct, Mpz, mpz_ptr, mpz_srcptr};
 use super::mpf::{Mpf, mpf_srcptr};
 use super::sign::Sign;
 use ffi::*;
-use libc::{c_char, c_double, c_int, c_ulong};
+use std::os::raw::{c_int, c_ulong, c_double, c_char, c_void};
 use std::ffi::CString;
 use std::str::FromStr;
 use std::error::Error;

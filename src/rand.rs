@@ -1,4 +1,4 @@
-use libc::{c_int, c_ulong, c_void};
+use std::os::raw::{c_int, c_ulong, c_void};
 use super::mpz::{mpz_struct, Mpz, mpz_ptr, mpz_srcptr, mp_bitcnt_t};
 use std::mem::uninitialized;
 
